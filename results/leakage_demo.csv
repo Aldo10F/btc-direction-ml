@@ -1,0 +1,6 @@
+,test_accuracy
+honest CNN,0.5196
+honest LightGBM,0.5403
+bug A: full-data scaler + shuffled split,0.5093
+bug B (CNN): label inside feature window,0.5339
+bug B (LightGBM): label inside features,0.9746
