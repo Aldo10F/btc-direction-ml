@@ -12,10 +12,10 @@ Same data, same features, same models, only the evaluation bugs differ:
 
 | Arm | Test accuracy |
 |-----|--------------:|
-| Honest CNN (causal z-scores, chronological split) | 52.9% |
-| Honest LightGBM baseline | 54.1% |
-| Bug A: CNN, scaler fit on the full dataset + shuffled split | 48.9% |
-| Bug B: CNN, label's move already inside the feature window | 53.5% |
+| Honest CNN (causal z-scores, chronological split) | 52.0% |
+| Honest LightGBM baseline | 54.0% |
+| Bug A: CNN, scaler fit on the full dataset + shuffled split | 50.9% |
+| Bug B: CNN, label's move already inside the feature window | 53.4% |
 | **Bug B: LightGBM, same misaligned label** | **97.5%** |
 
 Two things fell out of this that I didn't expect:
@@ -77,6 +77,19 @@ This time the model signal *beats* buy-and-hold and that is the trap. The entire
 
 Metrics per strategy: total return, CAGR, Sharpe, Sortino, Calmar, max drawdown, profit factor and win rate (see `evaluate()` in `backtest.py`).
 
+## Robustness
+
+A single test window is one draw from one regime, and no analysis of that window can substitute for other regimes. What *can* be measured is how fragile the model's win is inside the published window (`python robustness.py`, under a minute, offline):
+
+- **The edge lives in one 90-day slice.** Backtesting each consecutive 90-day sub-window standalone (`results/robustness.csv`): the model beats buy-and-hold only in the first slice (+19.1% vs +4.7%), the one containing the August 2024 crash it happened to be short for. In every later slice it predicts "up" every single day, so its accuracy equals the base rate and its return just tracks buy-and-hold.
+- **The winning flip is a lucky member of its own family.** The model is one of 434 possible "short until day $d$, then long forever" paths. Backtesting all of them (`results/robustness.json`): only 80 of 434 beat always-long, the median path ends at \$653 vs \$1,677 for always-long, and the published flip day sits at the 89.9th percentile. (Always-long here is the $d=0$ member of the family, which enters at the first tradable close and pays both fees, hence slightly below the buy-and-hold row above.)
+- **The accuracy is statistically nothing.** 226 correct calls in 433 days against a 51.5% base rate: a zero-skill coin weighted at the base rate scores 226 or better with probability **p = 0.405** (one-sided binomial). Nowhere near significant.
+- **Beating "random trading" is baseline-shopping, not evidence.** 1,000 seeded random strategies, backtested with and without fees (`seed=42`, `results/robustness.json`). Against daily coin-flips (long or short, 50/50) the model beats 99.3%, but that baseline is a strawman: long only half the days, a coin-flip captures none of the trend and pays a fee round trip every other day (median \$608; 86% lose money in a market that rose 75%). Match the randomness to the model's own 95% long bias instead, so chance rides the trend exactly like the model does, and 95% of the zero-information strategies end profitable and **63 of 1,000 beat the model outright** (93.7th percentile, p ≈ 0.06, below the top-decile flip paths above, and never past the 5% significance bar). Each fairer baseline shrinks the edge: coin-flip median \$608 → same-bias median \$1,450 → buy-and-hold \$1,749 → model \$1,990. How strong the model looks depends entirely on how weak a baseline it is compared against.
+
+![Final balance of every single flip path](results/robustness_flip_days.png)
+
+![1000 random strategies per baseline vs the model](results/robustness_random.png)
+
 ## Quick start
 
 Requires Python 3.12.
@@ -88,7 +101,10 @@ pip install -r requirements.txt
 
 python backtest.py        # seconds, offline: backtests the included predictions,
                           # writes results/metrics.csv + charts
-python test_backtest.py   # sanity check, prints "ok"
+python robustness.py      # ~1 min, offline: sub-window, flip-sweep, binomial
+                          # + random-baseline checks
+python test_backtest.py   # strategy unit tests + checks every number in this README
+                          # against the results/ artifacts; prints "ok"
 python leakage_demo.py    # ~10 min on CPU: the honest-vs-bugs accuracy table
 python model.py 400      # optional: retrain with 400 search trials
                           # (hours on CPU; defaults to 50 if omitted)
@@ -106,14 +122,15 @@ Trained artifacts and predictions are included, so `backtest.py` and `test_backt
 ├── data.py            # dataset assembly + feature engineering
 ├── model.py           # training + hyperparameter search
 ├── backtest.py        # strategies, metrics, charts
+├── robustness.py      # stress-tests the model's win inside the test window
 ├── leakage_demo.py    # reproduces paper-level accuracy via evaluation bugs
-├── test_backtest.py   # self-check for the strategy logic
+├── test_backtest.py   # strategy unit tests + README-vs-artifacts regression checks
 ├── requirements.txt
 └── LICENSE            # MIT
 ```
 
 ## Honest limitations
 
-Fees are modeled (0.1% per side) but slippage, funding costs on shorts, and margin mechanics are not. Everything rests on one test window in one market regime. On-chain metrics are consumed at each day's close, though in production some publish with a lag. None of this changes the conclusion, it only makes the negative result more negative.
+Fees are modeled (0.1% per side) but slippage, funding costs on shorts, and margin mechanics are not. Everything rests on one test window in one market regime; the [Robustness](#robustness) section quantifies how little the "win" inside that window means, but only fresh data from other regimes could test the conclusion elsewhere. On-chain metrics are consumed at each day's close, though in production some publish with a lag. None of this changes the conclusion, it only makes the negative result more negative.
 
 This is a research project, not financial advice. The finding is the product: next-day BTC direction is not predictable from public daily data with this approach, and claims otherwise deserve a hard look at their target alignment.

@@ -1,0 +1,60 @@
+{
+  "paths": 434,
+  "published_flip_day": 23,
+  "published_flip_date": "2024-08-10",
+  "published_final_balance": 1989.96,
+  "always_long_final_balance": 1677.47,
+  "paths_beating_always_long": 80,
+  "published_percentile": 89.9,
+  "median_final_balance": 652.67,
+  "binomial": {
+    "correct": 226,
+    "days": 433,
+    "accuracy_%": 52.2,
+    "base_rate_%": 51.5,
+    "p_value": 0.405
+  },
+  "random_baseline": {
+    "sims": 1000,
+    "seed": 42,
+    "hodl_final_balance": 1748.56,
+    "coin_flip": {
+      "p_long": 0.5,
+      "fees": {
+        "model_final_balance": 1989.96,
+        "median_final_balance": 607.93,
+        "mean_final_balance": 672.97,
+        "pct_positive_pnl": 14.0,
+        "pct_beating_model": 0.7,
+        "model_percentile": 99.3
+      },
+      "no_fees": {
+        "model_final_balance": 1996.55,
+        "median_final_balance": 934.83,
+        "mean_final_balance": 1038.62,
+        "pct_positive_pnl": 45.7,
+        "pct_beating_model": 5.2,
+        "model_percentile": 94.8
+      }
+    },
+    "bias_matched": {
+      "p_long": 0.947,
+      "fees": {
+        "model_final_balance": 1989.96,
+        "median_final_balance": 1449.76,
+        "mean_final_balance": 1485.03,
+        "pct_positive_pnl": 95.2,
+        "pct_beating_model": 6.3,
+        "model_percentile": 93.7
+      },
+      "no_fees": {
+        "model_final_balance": 1996.55,
+        "median_final_balance": 1585.6,
+        "mean_final_balance": 1621.44,
+        "pct_positive_pnl": 97.2,
+        "pct_beating_model": 14.4,
+        "model_percentile": 85.6
+      }
+    }
+  }
+}
